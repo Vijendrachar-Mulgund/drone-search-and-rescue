@@ -1,5 +1,8 @@
 # Python3 Virtual Environment
 venv
 
+# Environment
+.env
+
 # Misc
 .idea
