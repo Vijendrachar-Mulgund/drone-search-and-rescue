@@ -1,4 +1,4 @@
-from flask import Flask, Response
+from flask import Flask, Response, render_template
 from dotenv import load_dotenv
 from os import getenv
 from datetime import datetime
@@ -9,6 +9,11 @@ load_dotenv()
 
 # Init Flask app
 app = Flask(__name__)
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 # Routes
@@ -26,7 +31,7 @@ def health_check():
 def video_feed():
     def generate():
         with get('http://localhost:8001/video_stream', stream=True) as r:
-            for chunk in r.iter_content(chunk_size=1024):
+            for chunk in r.iter_content(chunk_size=4096):
                 if chunk:
                     yield chunk
 
