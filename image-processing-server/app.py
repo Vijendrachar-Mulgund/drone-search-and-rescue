@@ -9,7 +9,7 @@ app = Flask(__name__)
 # Client setup to receive video stream
 def receive_frames():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('127.0.0.1', 8001))  # Replace with your server's IP address
+    client_socket.connect(('127.0.0.1', 8080))  # Replace with your server's IP address
 
     data = b""
     while True:
