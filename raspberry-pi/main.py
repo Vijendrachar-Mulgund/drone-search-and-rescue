@@ -51,5 +51,9 @@ def initialize_server():
 if __name__ == '__main__':
     try:
         initialize_server()
+    except KeyboardInterrupt:
+        print("Program shutdown 🛑")
+    except BrokenPipeError:
+        print("Connection Lost 🧭")
     except Exception as e:
         print("An exception occurred: {}".format(e))

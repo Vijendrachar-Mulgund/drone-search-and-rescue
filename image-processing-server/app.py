@@ -1,15 +1,21 @@
-from flask import Flask, Response, render_template, render_template_string
+from flask import Flask, Response, render_template
 import cv2
 import socket
 import numpy as np
 
 app = Flask(__name__)
 
+SOCKET_SERVER_IP = '127.0.0.1'
+SOCKET_SERVER_PORT = 8080
+SOCKET_SERVER_ADDRESS = (SOCKET_SERVER_IP, SOCKET_SERVER_PORT)
+SERVER_PORT = 5000
+SERVER_HOST = '0.0.0.0'
+
 
 # Client setup to receive video stream
 def receive_frames():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('127.0.0.1', 8080))  # Replace with your server's IP address
+    client_socket.connect(SOCKET_SERVER_ADDRESS)  # Replace with your server's IP address
 
     data = b""
     while True:
@@ -45,4 +51,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host=SERVER_HOST, port=SERVER_PORT)
