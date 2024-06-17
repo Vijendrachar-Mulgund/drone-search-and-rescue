@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream</title>
+    <title>Your APP</title>
 </head>
 <body>
-    <h1>Live Stream</h1>
-    <video id="video" width="640" height="480" controls autoplay>
-        <source src="http://35.176.209.22/live/streamkey.m3u8" type="application/x-mpegURL">
-        Your browser does not support the video tag.
-    </video>
+    <video id="remoteVideo" autoplay></video>
+    <a href="{{ url_for('video_feed') }}" target="_self">Link to Video Feed</a>
 </body>
 </html>

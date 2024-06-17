@@ -1,38 +1,39 @@
-# app_sender.py
-from flask import Flask, Response, stream_with_context
-from dotenv import load_dotenv
-from os import getenv
 import cv2
-
-# Load the environment variables
-load_dotenv()
-
-# Init the Flask Application
-app = Flask(__name__)
-
-VIDEO_CAPTURE = 1
+import socket
+import time
+import logging
 
 
 def generate_frames():
-    camera = cv2.VideoCapture(VIDEO_CAPTURE)
+    camera = cv2.VideoCapture(1)  # Change to 1 if your default camera is at index 1
     while True:
-        success, frame = camera.read()
+        start_time = time.time()
+        success, frame_camera = camera.read()
         if not success:
             break
         else:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
+            ret, buffer = cv2.imencode('.jpg', frame_camera)
+            frame_camera = buffer.tobytes()
+            # Concatenate frame for streaming
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_camera + b'\r\n')
+            elapsed_time = time.time() - start_time
+            logging.debug(f"Frame generation time: {elapsed_time} seconds")
 
 
-@app.route('/video_stream', methods=['GET'])
-def video_stream():
-    return Response(stream_with_context(generate_frames()), mimetype='multipart/x-mixed-replace; boundary=frame')
+# Setup socket
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind(('127.0.0.1', 8001))
+server_socket.listen(0)
 
+print("Server listening on port 8485")
 
-if __name__ == '__main__':
-    print("The Raspberry Pi - Video Stream server has started 🚀")
-    port = int(getenv("PORT", 8001))
-    host = getenv("HOST", "0.0.0.0")
-    app.run(debug=True, port=port, host=host)
+# Accept a single connection
+connection, address = server_socket.accept()
+print(f"Connection from: {address}")
+
+for frame in generate_frames():
+    connection.sendall(frame)
+
+connection.close()
+server_socket.close()

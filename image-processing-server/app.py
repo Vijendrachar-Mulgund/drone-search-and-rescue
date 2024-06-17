@@ -1,46 +1,48 @@
-from flask import Flask, Response, render_template
-from dotenv import load_dotenv
-from os import getenv
-from datetime import datetime
-from requests import get
+from flask import Flask, Response, render_template, render_template_string
+import cv2
+import socket
+import numpy as np
 
-# Load the environment variables
-load_dotenv()
-
-# Init Flask app
 app = Flask(__name__)
+
+
+# Client setup to receive video stream
+def receive_frames():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect(('127.0.0.1', 8001))  # Replace with your server's IP address
+
+    data = b""
+    while True:
+        try:
+            while True:
+                data += client_socket.recv(4096)
+                start = data.find(b'\xff\xd8')  # JPEG start
+                end = data.find(b'\xff\xd9')  # JPEG end
+                if start != -1 and end != -1:
+                    jpg = data[start:end + 2]
+                    data = data[end + 2:]
+                    frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+                    break
+            if frame is not None:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            print(f"Error receiving frame: {e}")
+            break
+    client_socket.close()
+
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(receive_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
-# Routes
-@app.route("/health-check", methods=["GET"])
-def health_check():
-    response = {
-        "status": "success",
-        "message": "The Image processing server is working",
-        "current": f"{datetime.now()}"
-    }
-    return response
-
-
-@app.route('/video_feed', methods=["GET"])
-def video_feed():
-    def generate():
-        with get('http://localhost:8001/video_stream', stream=True) as r:
-            for chunk in r.iter_content(chunk_size=4096):
-                if chunk:
-                    yield chunk
-
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-# Launch the server
-if __name__ == "__main__":
-    print("The Image Processing - Video Stream server has started 🚀")
-    port = int(getenv("PORT", 8000))
-    host = getenv("HOST", "0.0.0.0")
-    app.run(debug=True, port=port, host=host)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
