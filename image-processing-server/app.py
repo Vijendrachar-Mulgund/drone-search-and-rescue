@@ -1,54 +1,28 @@
-from flask import Flask, Response, render_template
-import cv2
-import socket
-import numpy as np
+from flask import Flask
+from flask_socketio import SocketIO, send
 
 app = Flask(__name__)
-
-SOCKET_SERVER_IP = '127.0.0.1'
-SOCKET_SERVER_PORT = 8080
-SOCKET_SERVER_ADDRESS = (SOCKET_SERVER_IP, SOCKET_SERVER_PORT)
-SERVER_PORT = 5000
-SERVER_HOST = '0.0.0.0'
+app.config['SECRET_KEY'] = 'SECRET!!!!!!'
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
-# Client setup to receive video stream
-def receive_frames():
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(SOCKET_SERVER_ADDRESS)  # Replace with your server's IP address
-
-    data = b""
-    while True:
-        try:
-            while True:
-                data += client_socket.recv(4096)
-                start = data.find(b'\xff\xd8')  # JPEG start
-                end = data.find(b'\xff\xd9')  # JPEG end
-                if start != -1 and end != -1:
-                    jpg = data[start:end + 2]
-                    data = data[end + 2:]
-                    frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
-                    break
-            if frame is not None:
-                ret, buffer = cv2.imencode('.jpg', frame)
-                frame = buffer.tobytes()
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        except Exception as e:
-            print(f"Error receiving frame: {e}")
-            break
-    client_socket.close()
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+    send('Welcome to the server!')
 
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(receive_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+@socketio.on('message')
+def handle_message(msg):
+    print('Message from client: ' + msg)
+    send('Received: ' + msg)
 
 
-@app.route('/')
-def index():
-    return render_template("index.html")
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host=SERVER_HOST, port=SERVER_PORT)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False, log_output=True,
+                 allow_unsafe_werkzeug=True)

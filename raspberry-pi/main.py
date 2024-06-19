@@ -1,59 +1,33 @@
-import cv2
-import socket
-import time
-import logging
+from flask import Flask
+import socketio
 
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 8080
-SERVER_ADDRESS = (SERVER_IP, SERVER_PORT)
-VIDEO_SOURCE = 1
-VIDEO_IMAGE_FORMAT = '.jpg'
-SOCKET_LISTEN_BACKLOG = 0
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'SECRET!!'
+
+sio = socketio.Client()
 
 
-def generate_frames():
-    camera = cv2.VideoCapture(VIDEO_SOURCE)
-    while True:
-        start_time = time.time()
-        success, frame_camera = camera.read()
-        if not success:
-            break
-        else:
-            ret, buffer = cv2.imencode(VIDEO_IMAGE_FORMAT, frame_camera)
-            frame_camera = buffer.tobytes()
-            # Concatenate frame for streaming
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_camera + b'\r\n')
-            elapsed_time = time.time() - start_time
-            logging.debug(f"Frame generation time: {elapsed_time} seconds")
+@sio.event
+def connect():
+    print('Connection established')
+    sio.send('Hello from the client!')
 
 
-def initialize_server():
-    # Setup socket
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(SERVER_ADDRESS)
-    server_socket.listen(SOCKET_LISTEN_BACKLOG)
+@sio.event
+def message(data):
+    print('Message from server:', data)
 
-    print(f"Server listening on port {SERVER_IP}:{SERVER_PORT}")
 
-    # Accept a single connection
-    connection, address = server_socket.accept()
+@sio.event
+def disconnect():
+    print('Disconnected from server')
 
-    print(f"Connection from: {address}")
 
-    for frame in generate_frames():
-        connection.sendall(frame)
-
-    connection.close()
-    server_socket.close()
+@app.route('/')
+def index():
+    return 'Client App Running'
 
 
 if __name__ == '__main__':
-    try:
-        initialize_server()
-    except KeyboardInterrupt:
-        print("Program shutdown 🛑")
-    except BrokenPipeError:
-        print("Connection Lost 🧭")
-    except Exception as e:
-        print("An exception occurred: {}".format(e))
+    sio.connect('http://127.0.0.1:5000')
+    app.run(host='0.0.0.0', port=5001)
