@@ -1,12 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your APP</title>
+    <title>WebRTC Video Stream</title>
 </head>
 <body>
-    <video id="remoteVideo" autoplay></video>
-    <a href="{{ url_for('video_feed') }}" target="_self">Link to Video Feed</a>
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+    <script>
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+
+        const constraints = {
+            video: true,
+            audio: true
+        };
+
+        let localStream;
+        let peerConnection;
+        const socket = io();
+
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(stream => {
+                localVideo.srcObject = stream;
+                localStream = stream;
+            });
+
+        socket.on('message', (message) => {
+            const data = JSON.parse(message);
+            // Handle signaling messages
+        });
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection();
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            // Handle ICE candidates and negotiation
+        }
+
+        // Implement signaling and peer connection logic
+    </script>
 </body>
 </html>

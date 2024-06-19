@@ -1,54 +1,30 @@
-from flask import Flask, Response, render_template
-import cv2
-import socket
-import numpy as np
+import datetime
+
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
+import json
 
 app = Flask(__name__)
-
-SOCKET_SERVER_IP = '127.0.0.1'
-SOCKET_SERVER_PORT = 8080
-SOCKET_SERVER_ADDRESS = (SOCKET_SERVER_IP, SOCKET_SERVER_PORT)
-SERVER_PORT = 5000
-SERVER_HOST = '0.0.0.0'
-
-
-# Client setup to receive video stream
-def receive_frames():
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(SOCKET_SERVER_ADDRESS)  # Replace with your server's IP address
-
-    data = b""
-    while True:
-        try:
-            while True:
-                data += client_socket.recv(4096)
-                start = data.find(b'\xff\xd8')  # JPEG start
-                end = data.find(b'\xff\xd9')  # JPEG end
-                if start != -1 and end != -1:
-                    jpg = data[start:end + 2]
-                    data = data[end + 2:]
-                    frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
-                    break
-            if frame is not None:
-                ret, buffer = cv2.imencode('.jpg', frame)
-                frame = buffer.tobytes()
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        except Exception as e:
-            print(f"Error receiving frame: {e}")
-            break
-    client_socket.close()
-
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(receive_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
+
+
+@app.route('/health')
+def health():
+    return {"status": "success", "message": "Healthy", "current": datetime.datetime.now()}
+
+
+@socketio.on('message')
+def handle_message(message):
+    data = json.loads(message)
+    # Handle signaling data
+    emit('message', json.dumps({'response': 'received'}), broadcast=True)
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host=SERVER_HOST, port=SERVER_PORT)
+    socketio.run(app, host='0.0.0.0', port=8080, log_output=True, use_reloader=False, allow_unsafe_werkzeug=True)
