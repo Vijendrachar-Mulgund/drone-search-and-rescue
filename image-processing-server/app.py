@@ -8,8 +8,10 @@ def server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Get local machine name
     # host = socket.gethostname()
+
     host = '0.0.0.0'
     port = 9999
+
     # Bind to the port
     server_socket.bind((host, port))
     # Queue up to 5 requests
@@ -39,14 +41,21 @@ def server():
         frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
 
         if frame is not None:
-            cv2.imshow('Server Video', frame)
+            # Apply grayscale filter
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+
+            ret, buffer = cv2.imencode('.jpg', gray_frame)
+            if ret:
+                length = len(buffer)
+                client_socket.sendall(str(length).ljust(16).encode('utf-8'))
+                client_socket.sendall(buffer.tobytes())
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     client_socket.close()
     server_socket.close()
-    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

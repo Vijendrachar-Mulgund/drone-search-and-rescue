@@ -1,6 +1,6 @@
 import socket
 import cv2
-
+import numpy as np
 
 def client():
     # Create a socket object
@@ -27,7 +27,25 @@ def client():
         client_socket.sendall(str(length).ljust(16).encode('utf-8'))
         client_socket.sendall(data)
 
-        cv2.imshow('Client Video', frame)
+        # Receive processed frame from server
+        length = client_socket.recv(16)
+        if not length:
+            break
+        length = int(length.decode('utf-8'))
+
+        data = b''
+        while len(data) < length:
+            packet = client_socket.recv(length - len(data))
+            if not packet:
+                break
+            data += packet
+
+        frame_data = np.frombuffer(data, dtype=np.uint8)
+        processed_frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
+
+        if processed_frame is not None:
+            cv2.imshow('Client Video - Grayscale', processed_frame)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
