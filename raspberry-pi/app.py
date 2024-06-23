@@ -2,41 +2,40 @@ import socket
 import cv2
 import numpy as np
 
+SERVER_IP = '127.0.0.1'
+SERVER_PORT = 9999
+SERVER_ADDRESS = (SERVER_IP, SERVER_PORT)
+IMAGE_ENCODE_DECODE_FORMAT = 'utf-8'
+VIDEO_IMAGE_ENCODE_DECODE_FORMAT = '.jpg'
+VIDEO_SOURCE = 1  # 1 - FaceTime camera | 0 - Raspberry Pi camera
 
-def client():
-    # Create a socket object
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Get local machine name
-    host = '127.0.0.1'
-    port = 9999
-    # Connection to hostname on the port
-    client_socket.connect((host, port))
 
-    cap = cv2.VideoCapture(1)  # Use 0 for the webcam
+def video_capture(client_conn):
+    cap = cv2.VideoCapture(VIDEO_SOURCE)  # Use 0 for the webcam
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        ret, buffer = cv2.imencode('.jpg', frame)
+        ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, frame)
         if not ret:
             continue
 
         data = buffer.tobytes()
         length = len(data)
-        client_socket.sendall(str(length).ljust(16).encode('utf-8'))
-        client_socket.sendall(data)
+        client_conn.sendall(str(length).ljust(16).encode(IMAGE_ENCODE_DECODE_FORMAT))
+        client_conn.sendall(data)
 
         # Receive processed frame from server
-        length = client_socket.recv(16)
+        length = client_conn.recv(16)
         if not length:
             break
-        length = int(length.decode('utf-8'))
+        length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
 
         data = b''
         while len(data) < length:
-            packet = client_socket.recv(length - len(data))
+            packet = client_conn.recv(length - len(data))
             if not packet:
                 break
             data += packet
@@ -51,9 +50,23 @@ def client():
             break
 
     cap.release()
-    client_socket.close()
+    client_conn.close()
     cv2.destroyAllWindows()
 
 
+def init_client():
+    # Create a socket object
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect(SERVER_ADDRESS)
+
+    return client_socket
+
+
 if __name__ == "__main__":
-    client()
+    try:
+        socket_connection = init_client()
+        video_capture(socket_connection)
+    except KeyboardInterrupt:
+        print("Client shutting down 🛑")
+    except Exception as e:
+        print("An error occurred: {}".format(e))
