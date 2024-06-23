@@ -2,6 +2,7 @@ import socket
 import cv2
 import numpy as np
 
+
 def client():
     # Create a socket object
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
