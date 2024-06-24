@@ -1,6 +1,7 @@
 import socket
 import cv2
 import numpy as np
+from ultralytics import YOLO
 
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 9999
@@ -29,6 +30,7 @@ def init_server():
 
 
 def receive_video(client_conn, server_conn):
+    model = YOLO("ai-models/yolov8m.pt")
     while True:
         # Receive data from the client
         length = client_conn.recv(16)
@@ -45,6 +47,9 @@ def receive_video(client_conn, server_conn):
 
         frame_data = np.frombuffer(data, dtype=np.uint8)
         frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
+
+        result = model.track(frame, show=True)
+        print(result)
 
         if frame is not None:
             # Each frame processed here
