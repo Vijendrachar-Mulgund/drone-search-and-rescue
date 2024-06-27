@@ -31,7 +31,10 @@ def init_server():
 
 
 def receive_video(client_conn, server_conn):
-    model = YOLO("ai-models/yolov8m.pt")
+    model = YOLO("ai-models/yolov8l.pt")
+    fourcc = cv2.VideoWriter.fourcc('m', 'p', '4', 'v')
+    writer = cv2.VideoWriter("test_record.mp4", fourcc, 20.0, (1280, 720))
+    # is_recording = False
 
     while True:
         # Receive data from the client
@@ -53,6 +56,9 @@ def receive_video(client_conn, server_conn):
         if frame is not None:
             # Each frame processed here
             processed_frame = frame_track(frame, model)
+
+            # Record the video / Write the frame
+            writer.write(processed_frame)
 
             # Return the frame back to the client / Record the video and store
             ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, processed_frame)
