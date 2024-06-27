@@ -25,12 +25,14 @@ def init_server():
 
     # Establish a connection
     client_connection, client_address = socket_server.accept()
+
     print("Got a connection from {}".format(client_address))
     return client_connection, socket_server
 
 
 def receive_video(client_conn, server_conn):
     model = YOLO("ai-models/yolov8m.pt")
+
     while True:
         # Receive data from the client
         length = client_conn.recv(16)
@@ -48,12 +50,9 @@ def receive_video(client_conn, server_conn):
         frame_data = np.frombuffer(data, dtype=np.uint8)
         frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
 
-        result = model.track(frame, show=True)
-        print(result)
-
         if frame is not None:
             # Each frame processed here
-            processed_frame = process_frame(frame)
+            processed_frame = frame_track(frame, model)
 
             # Return the frame back to the client / Record the video and store
             ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, processed_frame)
@@ -70,12 +69,14 @@ def receive_video(client_conn, server_conn):
     cv2.destroyAllWindows()
 
 
-def process_frame(image_frame):
+def frame_track(frame, model):
     # Apply filter / Run the frame through a model
     # Apply the YOLOv8 model for Object detection
-    gray_frame = cv2.cvtColor(image_frame, cv2.COLOR_BGR2GRAY)
-    gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
-    return gray_frame
+    result = model.track(frame)
+
+    updated_frame = result[0].plot()
+
+    return updated_frame
 
 
 if __name__ == "__main__":
