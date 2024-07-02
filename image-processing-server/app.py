@@ -33,9 +33,9 @@ def init_server():
 
 def receive_video(client_conn, server_conn):
     video_id = random.randint(0, 99999)
-    model = YOLO("ai-models/dsar_yolo_v8s_1280p.pt")
+    model = YOLO("ai-models/dsar_yolo_v8n_1280p.pt")
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    writer = cv2.VideoWriter(f"recordings/{video_id}.mp4", fourcc, 30.0, (640, 480))
+    writer = cv2.VideoWriter(f"recordings/{video_id}.mp4", fourcc, 15.0, (1280, 720))
 
     while True:
         # Receive data from the client
