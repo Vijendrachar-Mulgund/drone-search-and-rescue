@@ -1,5 +1,6 @@
 import socket
 import cv2
+import random
 import numpy as np
 from ultralytics import YOLO
 
@@ -31,10 +32,10 @@ def init_server():
 
 
 def receive_video(client_conn, server_conn):
-    model = YOLO("ai-models/yolov8l.pt")
-    fourcc = cv2.VideoWriter.fourcc('m', 'p', '4', 'v')
-    writer = cv2.VideoWriter("test_record.mp4", fourcc, 20.0, (1280, 720))
-    # is_recording = False
+    video_id = random.randint(0, 99999)
+    model = YOLO("ai-models/dsar_yolo_v8s_1280p.pt")
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    writer = cv2.VideoWriter(f"recordings/{video_id}.mp4", fourcc, 30.0, (640, 480))
 
     while True:
         # Receive data from the client
@@ -79,7 +80,8 @@ def frame_track(frame, model):
     # Apply filter / Run the frame through a model
     # Apply the YOLOv8 model for Object detection
     result = model.track(frame)
-
+    print("Result Length: {}".format(len(result)))
+    print("Result: {}".format(result[0]))
     updated_frame = result[0].plot()
 
     return updated_frame

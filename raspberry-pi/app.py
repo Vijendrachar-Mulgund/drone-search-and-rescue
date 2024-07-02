@@ -7,19 +7,20 @@ SERVER_PORT = 9999
 SERVER_ADDRESS = (SERVER_IP, SERVER_PORT)
 IMAGE_ENCODE_DECODE_FORMAT = 'utf-8'
 VIDEO_IMAGE_ENCODE_DECODE_FORMAT = '.jpg'
-VIDEO_SOURCE = 1  # 1 - FaceTime camera | 0 - Raspberry Pi camera
-# VIDEO_SOURCE = "test-videos/DJI_0876.MOV"
+# VIDEO_SOURCE = 1  # 1 - FaceTime camera | 0 - Raspberry Pi camera
+VIDEO_SOURCE = "drone_footages/drone_footage_13.mp4"
 
 
 def video_capture(client_conn):
     cap = cv2.VideoCapture(VIDEO_SOURCE)  # Use 0 for the webcam
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    #
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while cap.isOpened():
         ret, frame = cap.read()
+        print("Res ", str(frame.shape))
+
         if not ret:
             break
 
