@@ -54,7 +54,7 @@ def receive_video(client_conn, server_conn):
 
     while True:
         # Receive data from the client
-        length = client_conn.recv(1024)
+        length = client_conn.recv(SOCKET_TRANSMISSION_SIZE)
         if not length:
             break
         length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
@@ -84,7 +84,7 @@ def receive_video(client_conn, server_conn):
             ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, processed_frame)
             if ret:
                 length = len(buffer)
-                client_conn.sendall(str(length).ljust(1024).encode(IMAGE_ENCODE_DECODE_FORMAT))
+                client_conn.sendall(str(length).ljust(SOCKET_TRANSMISSION_SIZE).encode(IMAGE_ENCODE_DECODE_FORMAT))
                 client_conn.sendall(buffer.tobytes())
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

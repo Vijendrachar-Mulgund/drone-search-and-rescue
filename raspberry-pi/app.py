@@ -1,23 +1,21 @@
 import socket
 import cv2
+import sys
+
 import numpy as np
 
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 9999
-SERVER_ADDRESS = (SERVER_IP, SERVER_PORT)
-IMAGE_ENCODE_DECODE_FORMAT = 'utf-8'
-VIDEO_IMAGE_ENCODE_DECODE_FORMAT = '.jpg'
-VIDEO_SOURCE = "drone_footages/drone_footage_4.mp4"  # 1 - FaceTime camera | 0 - Raspberry Pi camera
+from config import (SERVER_ADDRESS, IMAGE_ENCODE_DECODE_FORMAT, SOCKET_TRANSMISSION_SIZE,
+                    VIDEO_IMAGE_ENCODE_DECODE_FORMAT, VIDEO_SOURCE)
 
 
-def video_capture(client_conn):
-    cap = cv2.VideoCapture(VIDEO_SOURCE)
+def video_capture(client_conn, vid_source):
+    cap = cv2.VideoCapture(vid_source if vid_source is not None else VIDEO_SOURCE)
+
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while cap.isOpened():
         ret, frame = cap.read()
-        print("Res ", str(frame.shape))
 
         if not ret:
             break
@@ -28,11 +26,11 @@ def video_capture(client_conn):
 
         data = buffer.tobytes()
         length = len(data)
-        client_conn.sendall(str(length).ljust(1024).encode(IMAGE_ENCODE_DECODE_FORMAT))
+        client_conn.sendall(str(length).ljust(SOCKET_TRANSMISSION_SIZE).encode(IMAGE_ENCODE_DECODE_FORMAT))
         client_conn.sendall(data)
 
         # Receive processed frame from server
-        length = client_conn.recv(1024)
+        length = client_conn.recv(SOCKET_TRANSMISSION_SIZE)
         if not length:
             break
         length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
@@ -65,10 +63,18 @@ def init_client():
     return client_socket
 
 
+def get_params(cmd_params):
+    params_dict = {}
+    for i in range(1, len(cmd_params), 2):
+        params_dict[cmd_params[i]] = cmd_params[i + 1]
+    return params_dict
+
+
 if __name__ == "__main__":
     try:
+        params = get_params(sys.argv)
         socket_connection = init_client()
-        video_capture(socket_connection)
+        video_capture(socket_connection, params["-source"])
     except KeyboardInterrupt:
         print("Client shutting down 🛑")
     except Exception as e:
