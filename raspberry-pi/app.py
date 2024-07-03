@@ -29,24 +29,8 @@ def video_capture(client_conn, vid_source):
         client_conn.sendall(str(length).ljust(SOCKET_TRANSMISSION_SIZE).encode(IMAGE_ENCODE_DECODE_FORMAT))
         client_conn.sendall(data)
 
-        # Receive processed frame from server
-        length = client_conn.recv(SOCKET_TRANSMISSION_SIZE)
-        if not length:
-            break
-        length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
-
-        data = b''
-        while len(data) < length:
-            packet = client_conn.recv(length - len(data))
-            if not packet:
-                break
-            data += packet
-
-        frame_data = np.frombuffer(data, dtype=np.uint8)
-        processed_frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
-
-        if processed_frame is not None:
-            cv2.imshow('Client Video - Grayscale', processed_frame)
+        if frame is not None:
+            cv2.imshow('Client Video', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -73,8 +57,9 @@ def get_params(cmd_params):
 if __name__ == "__main__":
     try:
         params = get_params(sys.argv)
-        socket_connection = init_client()
-        video_capture(socket_connection, params["-source"])
+        if params["-source"]:
+            socket_connection = init_client()
+            video_capture(socket_connection, params["-source"])
     except KeyboardInterrupt:
         print("Client shutting down 🛑")
     except Exception as e:

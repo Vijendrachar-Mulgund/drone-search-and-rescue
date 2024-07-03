@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import threading
 import uuid
+import os
+import signal
 
 from flask import Flask, Response
 from ultralytics import YOLO
@@ -80,19 +82,13 @@ def receive_video(client_conn, server_conn):
             with frame_lock:
                 current_frame = processed_frame
 
-            # Return the frame back to the client / Record the video and store
-            ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, processed_frame)
-            if ret:
-                length = len(buffer)
-                client_conn.sendall(str(length).ljust(SOCKET_TRANSMISSION_SIZE).encode(IMAGE_ENCODE_DECODE_FORMAT))
-                client_conn.sendall(buffer.tobytes())
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     client_conn.close()
     server_conn.close()
     cv2.destroyAllWindows()
+    stop_server()
 
 
 def generate_frames():
@@ -152,15 +148,20 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+def stop_server():
+    os.kill(os.getpid(), signal.SIGINT)
+
+
 if __name__ == "__main__":
     try:
-        # Start Socket server
-        receive_thread = threading.Thread(target=init_socket_server)
-        receive_thread.daemon = True
-        receive_thread.start()
+        while True:
+            # Start Socket server
+            receive_thread = threading.Thread(target=init_socket_server)
+            receive_thread.daemon = True
+            receive_thread.start()
 
-        # Start Flask server
-        app.run(host=SERVER_HOST, port=SERVER_FLASK_PORT)
+            # Start Flask server
+            app.run(host=SERVER_HOST, port=SERVER_FLASK_PORT)
 
     except KeyboardInterrupt:
         print("Server shut down 🛑")
