@@ -7,8 +7,7 @@ SERVER_PORT = 9999
 SERVER_ADDRESS = (SERVER_IP, SERVER_PORT)
 IMAGE_ENCODE_DECODE_FORMAT = 'utf-8'
 VIDEO_IMAGE_ENCODE_DECODE_FORMAT = '.jpg'
-# VIDEO_SOURCE = 1  # 1 - FaceTime camera | 0 - Raspberry Pi camera
-VIDEO_SOURCE = "drone_footages/drone_footage_4.mp4"
+VIDEO_SOURCE = "drone_footages/drone_footage_4.mp4"  # 1 - FaceTime camera | 0 - Raspberry Pi camera
 
 
 def video_capture(client_conn):
@@ -29,11 +28,11 @@ def video_capture(client_conn):
 
         data = buffer.tobytes()
         length = len(data)
-        client_conn.sendall(str(length).ljust(16).encode(IMAGE_ENCODE_DECODE_FORMAT))
+        client_conn.sendall(str(length).ljust(1024).encode(IMAGE_ENCODE_DECODE_FORMAT))
         client_conn.sendall(data)
 
         # Receive processed frame from server
-        length = client_conn.recv(16)
+        length = client_conn.recv(1024)
         if not length:
             break
         length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
@@ -63,7 +62,6 @@ def init_client():
     # Create a socket object
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect(SERVER_ADDRESS)
-
     return client_socket
 
 

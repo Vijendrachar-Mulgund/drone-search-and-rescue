@@ -1,37 +1,40 @@
 import socket
 import cv2
-import random
 import numpy as np
 import threading
-import queue
+import uuid
+
 from flask import Flask, Response
 from ultralytics import YOLO
 
-app = Flask(__name__)
+from config import (SERVER_HOST, SERVER_SOCKET_PORT, SERVER_FLASK_PORT, SERVER_SOCKET_ADDRESS, SERVER_MAX_QUEUE_SIZE,
+                    IMAGE_ENCODE_DECODE_FORMAT, VIDEO_IMAGE_ENCODE_DECODE_FORMAT,
+                    VIDEO_RECORDING_FRAME_RATE, SOCKET_TRANSMISSION_SIZE)
 
-SERVER_HOST = '0.0.0.0'
-SERVER_PORT = 9999
-SERVER_ADDRESS = (SERVER_HOST, SERVER_PORT)
-SERVER_MAX_QUEUE_SIZE = 5
-IMAGE_ENCODE_DECODE_FORMAT = 'utf-8'
-VIDEO_IMAGE_ENCODE_DECODE_FORMAT = '.jpg'
+app = Flask(__name__)
 
 # Shared variable to store the most recent frame
 current_frame = None
 frame_lock = threading.Lock()
 
+# Initialise the YOLO model
+model = YOLO("ai-models/dsar_yolo_v8n_1280p.pt")
+
+# Create a new Case ID
+case_id = str(uuid.uuid4())
+
 
 # Server Initialization
-def init_server():
+def init_socket_server():
     # Create a socket object
     socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind to the port
-    socket_server.bind(SERVER_ADDRESS)
+    socket_server.bind(SERVER_SOCKET_ADDRESS)
     # Queue up to 5 requests
     socket_server.listen(SERVER_MAX_QUEUE_SIZE)
 
-    print("Server listening on {}:{}".format(SERVER_HOST, SERVER_PORT))
+    print("Server listening on {}:{}".format(SERVER_HOST, SERVER_SOCKET_PORT))
 
     # Establish a connection
     client_connection, client_address = socket_server.accept()
@@ -44,14 +47,14 @@ def init_server():
 
 
 def receive_video(client_conn, server_conn):
-    video_id = random.randint(0, 99999)
-    model = YOLO("ai-models/dsar_yolo_v8n_1280p.pt")
-    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    writer = cv2.VideoWriter(f"recordings/{video_id}.mp4", fourcc, 15.0, (1280, 720))
     global current_frame
+
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    writer = cv2.VideoWriter(f"recordings/{case_id}.mp4", fourcc, VIDEO_RECORDING_FRAME_RATE, (1280, 720))
+
     while True:
         # Receive data from the client
-        length = client_conn.recv(16)
+        length = client_conn.recv(1024)
         if not length:
             break
         length = int(length.decode(IMAGE_ENCODE_DECODE_FORMAT))
@@ -68,15 +71,10 @@ def receive_video(client_conn, server_conn):
 
         if frame is not None:
             # Each frame processed here
-            processed_frame = frame_track(frame, model)
+            processed_frame = frame_track(frame)
 
             # Record the video / Write the frame
             writer.write(processed_frame)
-
-            # # Add frame to queue, removing old frames if necessary
-            # if frame_queue.full():
-            #     frame_queue.empty()
-            # frame_queue.put(frame)
 
             # Update current_frame with the new frame
             with frame_lock:
@@ -86,7 +84,7 @@ def receive_video(client_conn, server_conn):
             ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, processed_frame)
             if ret:
                 length = len(buffer)
-                client_conn.sendall(str(length).ljust(16).encode(IMAGE_ENCODE_DECODE_FORMAT))
+                client_conn.sendall(str(length).ljust(1024).encode(IMAGE_ENCODE_DECODE_FORMAT))
                 client_conn.sendall(buffer.tobytes())
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -99,26 +97,39 @@ def receive_video(client_conn, server_conn):
 
 def generate_frames():
     global current_frame
+
+    # Get each frame for the stream
     while True:
         with frame_lock:
             if current_frame is not None:
-                frame = current_frame.copy()
+                frame = current_frame
             else:
                 continue
 
+        # Encode for stream
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
+
+        # Return each frame for stream
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
-def frame_track(frame, model):
-    # Apply filter / Run the frame through a model
+def frame_track(frame):
+    global model
     # Apply the YOLOv8 model for Object detection
     result = model.track(frame)
-    print("Result Length: {}".format(len(result)))
-    print("Result: {}".format(result[0]))
     updated_frame = result[0].plot()
+
+    # Access confidence scores
+    for res in result:
+        boxes = res.boxes  # Boxes object for bounding box outputs
+        for box in boxes:
+            confidence = box.conf.item()  # Confidence score
+            obj_cls = box.cls.item()  # class item
+
+            print(f"Confidence: {confidence:.2f}")
+            print(f"Class: {obj_cls:.2f}")
 
     return updated_frame
 
@@ -127,10 +138,10 @@ def frame_track(frame, model):
 def index():
     return """
         <html>
-        <body>
-        <h1>Live Video Stream</h1>
-        <img width="1280" height="720" src="/video_feed">
-        </body>
+            <body>
+                <h1>Live Video Stream</h1>
+                <img width="1280" height="720" src="/video_feed">
+            </body>
         </html>
         """
 
@@ -143,13 +154,13 @@ def video_feed():
 
 if __name__ == "__main__":
     try:
-        # Start frame receiving thread
-        receive_thread = threading.Thread(target=init_server)
+        # Start Socket server
+        receive_thread = threading.Thread(target=init_socket_server)
         receive_thread.daemon = True
         receive_thread.start()
 
-        # Run Flask app
-        app.run(host='0.0.0.0', port=5000)
+        # Start Flask server
+        app.run(host=SERVER_HOST, port=SERVER_FLASK_PORT)
 
     except KeyboardInterrupt:
         print("Server shut down 🛑")
