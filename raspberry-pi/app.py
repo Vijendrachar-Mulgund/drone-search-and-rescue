@@ -57,9 +57,11 @@ def get_params(cmd_params):
 if __name__ == "__main__":
     try:
         params = get_params(sys.argv)
+        socket_connection = init_client()
         if params["-source"]:
-            socket_connection = init_client()
             video_capture(socket_connection, params["-source"])
+        else:
+            video_capture(socket_connection)
     except KeyboardInterrupt:
         print("Client shutting down 🛑")
     except Exception as e:
