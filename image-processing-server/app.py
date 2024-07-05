@@ -26,6 +26,9 @@ case_id = None
 # Initialise the YOLO model
 model = YOLO("ai-models/dsar_yolo_v8n_1280p.pt")
 
+# Store the total number of people / Re-initialise at every connection
+total_number_of_people_found = []
+
 
 # Server Initialization
 def init_socket_server():
@@ -52,8 +55,10 @@ def init_socket_server():
 def receive_video(client_conn, server_conn):
     global current_frame
     global case_id
+    global total_number_of_people_found
 
     case_id = str(uuid.uuid4())
+    total_number_of_people_found = []
 
     # Receive resolution from server
     resolution = client_conn.recv(1024).decode()
@@ -129,13 +134,19 @@ def frame_track(frame):
     # Access confidence scores
     for res in result:
         boxes = res.boxes  # Boxes object for bounding box outputs
-        for box in boxes:
-            confidence = box.conf.item()  # Confidence score
-            obj_cls = box.cls.item()  # class item
 
-            print(f"Confidence: {confidence:.2f}")
-            print(f"Class: {obj_cls:.2f}")
+        if len(boxes) > len(total_number_of_people_found):
+            for box in boxes:
+                confidence = box.conf.item()  # Confidence score
+                obj_cls = box.cls.item()  # Class item
 
+                if confidence > 0.75:
+                    total_number_of_people_found.append(confidence)
+
+                print(f"Confidence: {confidence:.2f}")
+                print(f"Class: {obj_cls:.2f}")
+
+    print(f"Total number of people found: {total_number_of_people_found}")
     return updated_frame
 
 
