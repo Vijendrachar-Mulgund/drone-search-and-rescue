@@ -1,3 +1,4 @@
+import json
 import socket
 import cv2
 import sys
@@ -8,11 +9,19 @@ from config import (SERVER_ADDRESS, IMAGE_ENCODE_DECODE_FORMAT, SOCKET_TRANSMISS
                     VIDEO_IMAGE_ENCODE_DECODE_FORMAT, VIDEO_SOURCE)
 
 
-def video_capture(client_conn, vid_source):
+def video_capture(client_conn, vid_source=None):
     cap = cv2.VideoCapture(vid_source if vid_source is not None else VIDEO_SOURCE)
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    # Get the resolution of video
+    res_ret, res_frame = cap.read()
+
+    # Get resolution
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # Send resolution to client
+    resolution = f"{width},{height}"
+    client_conn.send(resolution.encode())
 
     while cap.isOpened():
         ret, frame = cap.read()

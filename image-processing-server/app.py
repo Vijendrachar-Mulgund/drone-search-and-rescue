@@ -1,3 +1,4 @@
+import json
 import socket
 import cv2
 import numpy as np
@@ -19,11 +20,11 @@ app = Flask(__name__)
 current_frame = None
 frame_lock = threading.Lock()
 
+# Create a new Case ID
+case_id = None
+
 # Initialise the YOLO model
 model = YOLO("ai-models/dsar_yolo_v8n_1280p.pt")
-
-# Create a new Case ID
-case_id = str(uuid.uuid4())
 
 
 # Server Initialization
@@ -50,9 +51,16 @@ def init_socket_server():
 
 def receive_video(client_conn, server_conn):
     global current_frame
+    global case_id
+
+    case_id = str(uuid.uuid4())
+
+    # Receive resolution from server
+    resolution = client_conn.recv(1024).decode()
+    width, height = map(int, resolution.split(','))
 
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    writer = cv2.VideoWriter(f"recordings/{case_id}.mp4", fourcc, VIDEO_RECORDING_FRAME_RATE, (1280, 720))
+    writer = cv2.VideoWriter(f"recordings/{case_id}.mp4", fourcc, VIDEO_RECORDING_FRAME_RATE, (int(width), int(height)))
 
     while True:
         # Receive data from the client
@@ -102,13 +110,14 @@ def generate_frames():
             else:
                 continue
 
-        # Encode for stream
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        if frame is not None:
+            # Encode for stream
+            ret, buffer = cv2.imencode(VIDEO_IMAGE_ENCODE_DECODE_FORMAT, frame)
+            frame = buffer.tobytes()
 
-        # Return each frame for stream
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            # Return each frame for stream
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
 def frame_track(frame):
