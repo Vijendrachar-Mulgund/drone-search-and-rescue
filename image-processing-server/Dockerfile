@@ -16,6 +16,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Make port 9999 available to the world outside this container
 EXPOSE 9999
+EXPOSE 5000
 
 # Run hello.py when the container launches
 CMD ["python3", "app.py"]

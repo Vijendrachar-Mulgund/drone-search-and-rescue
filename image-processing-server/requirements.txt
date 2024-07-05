@@ -1,4 +1,3 @@
-numpy==2.0.0
 opencv-python==4.10.0.84
 ultralytics==8.2.41
 Flask==3.0.3
