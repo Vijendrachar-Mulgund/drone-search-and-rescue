@@ -1,9 +1,6 @@
-import json
 import socket
 import cv2
 import sys
-
-import numpy as np
 
 from config import (SERVER_ADDRESS, IMAGE_ENCODE_DECODE_FORMAT, SOCKET_TRANSMISSION_SIZE,
                     VIDEO_IMAGE_ENCODE_DECODE_FORMAT, VIDEO_SOURCE)
@@ -11,9 +8,6 @@ from config import (SERVER_ADDRESS, IMAGE_ENCODE_DECODE_FORMAT, SOCKET_TRANSMISS
 
 def video_capture(client_conn, vid_source=None):
     cap = cv2.VideoCapture(vid_source if vid_source is not None else VIDEO_SOURCE)
-
-    # Get the resolution of video
-    res_ret, res_frame = cap.read()
 
     # Get resolution
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
