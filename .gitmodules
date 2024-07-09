@@ -1,3 +1,6 @@
 [submodule "dsar-drone"]
 	path = dsar-drone
 	url = git@github.com:Vijendrachar-Mulgund/dsar-drone.git
+[submodule "dsar-image-processing-server"]
+	path = dsar-image-processing-server
+	url = git@github.com:Vijendrachar-Mulgund/dsar-image-processing-server.git
