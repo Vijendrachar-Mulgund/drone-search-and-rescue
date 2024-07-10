@@ -4,3 +4,6 @@
 [submodule "dsar-image-processing-server"]
 	path = dsar-image-processing-server
 	url = git@github.com:Vijendrachar-Mulgund/dsar-image-processing-server.git
+[submodule "dsar-web-portal"]
+	path = dsar-web-portal
+	url = git@github.com:Vijendrachar-Mulgund/dsar-web-portal.git
