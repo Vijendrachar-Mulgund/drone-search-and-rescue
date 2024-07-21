@@ -7,3 +7,6 @@
 [submodule "dsar-web-portal"]
 	path = dsar-web-portal
 	url = git@github.com:Vijendrachar-Mulgund/dsar-web-portal.git
+[submodule "dsar-web-ui"]
+	path = dsar-web-ui
+	url = git@github.com:Vijendrachar-Mulgund/dsar-web-ui.git
