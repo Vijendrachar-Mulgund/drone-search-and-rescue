@@ -1,12 +1,16 @@
 [submodule "dsar-drone"]
 	path = dsar-drone
 	url = git@github.com:Vijendrachar-Mulgund/dsar-drone.git
+	branch = main
 [submodule "dsar-image-processing-server"]
 	path = dsar-image-processing-server
 	url = git@github.com:Vijendrachar-Mulgund/dsar-image-processing-server.git
+	branch = main
 [submodule "dsar-web-portal"]
 	path = dsar-web-portal
 	url = git@github.com:Vijendrachar-Mulgund/dsar-web-portal.git
+	branch = main
 [submodule "dsar-web-ui"]
 	path = dsar-web-ui
 	url = git@github.com:Vijendrachar-Mulgund/dsar-web-ui.git
+	branch = main
